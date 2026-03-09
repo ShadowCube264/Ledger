@@ -15,3 +15,8 @@ minecraft/
 
 # Mkdocs
 site/
+
+.vscode/
+.kotlin/
+bin/main/
+bin/testmod/

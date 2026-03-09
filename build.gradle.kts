@@ -1,14 +1,6 @@
-import com.modrinth.minotaur.TaskModrinthUpload
-
 plugins {
-    kotlin("jvm") version "1.7.10"
-    id("fabric-loom") version "0.12.+"
-    id("maven-publish")
-    id("io.gitlab.arturbosch.detekt") version "1.19.0"
-    id("com.github.jakemarsden.git-hooks") version "0.0.2"
-    id("com.modrinth.minotaur") version "2.+"
-    id("com.github.johnrengelman.shadow") version "7.1.2"
-    id("com.matthewprenger.cursegradle") version "1.4.0"
+    kotlin("jvm") version "2.3.0"
+    id("net.fabricmc.fabric-loom-remap") version "1.15-SNAPSHOT"
 }
 
 var release = false
@@ -19,36 +11,8 @@ val modName: String by project
 val modVersion: String by project
 val mavenGroup: String by project
 
-base.archivesBaseName = modId
-version = "$modVersion${getVersionMetadata()}"
+version = "1.2.8"
 group = mavenGroup
-
-sourceSets {
-    create("testmod") {
-        runtimeClasspath += sourceSets["main"].runtimeClasspath
-        compileClasspath += sourceSets["main"].compileClasspath
-    }
-}
-
-loom {
-    //serverOnlyMinecraftJar()
-
-    runs {
-        create("testmodClient") {
-            client()
-            ideConfigGenerated(project.rootProject == project)
-            name("Networking Testmod (Client)")
-            source(sourceSets.getByName("testmod"))
-        }
-    }
-}
-
-configurations.implementation.get().extendsFrom(configurations.shadow.get())
-
-fun DependencyHandlerScope.modImplementationAndInclude(dep: Any) {
-    modImplementation(dep)
-    include(dep)
-}
 
 repositories {
     maven("https://maven.fabricmc.net/")
@@ -56,7 +20,7 @@ repositories {
     maven("https://jitpack.io")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     mavenCentral()
-    mavenLocal()
+    //mavenLocal()
 }
 
 dependencies {
@@ -64,35 +28,49 @@ dependencies {
 
     // Fabric
     minecraft(libs.minecraft)
-    mappings(variantOf(libs.yarn.mappings) { classifier("v2") })
+    mappings("net.fabricmc:yarn:1.20.1+build.10:v2")
     modImplementation(libs.fabric.loader)
 
     // Fabric API
     modImplementation(libs.fabric.api)
 
     // Permissions
-    modImplementationAndInclude(libs.fabric.permissions)
+    modImplementation(libs.fabric.permissions)
+    include(libs.fabric.permissions)
 
     // Translations
-    modImplementationAndInclude(libs.translations)
+    modImplementation(libs.translations)
+    include(libs.translations)
 
     // Kotlin
     modImplementation(libs.fabric.kotlin)
 
     // Database
-    shadow(libs.exposed.core)
-    shadow(libs.exposed.dao)
-    shadow(libs.exposed.jdbc)
-    shadow(libs.exposed.java.time)
-    shadow(libs.sqlite.jdbc)
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.dao)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.java.time)
+    implementation(libs.sqlite.jdbc)
+
+    include(libs.exposed.core)
+    include(libs.exposed.dao)
+    include(libs.exposed.jdbc)
+    include(libs.exposed.java.time)
+    include(libs.sqlite.jdbc)
 
     // Config
-    shadow(libs.konf.core)
-    shadow(libs.konf.toml)
+    implementation(libs.konf.core)
+    implementation(libs.konf.toml)
+
+    include(libs.konf.core)
+    include(libs.konf.toml)
+    include("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.+")
+    include("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.+")
+    include("com.moandjiezana.toml:toml4j:0.7.2")
+    include("org.apache.commons:commons-text:1.15.0")
 }
 
 tasks {
-    val javaVersion = JavaVersion.VERSION_17
 
     processResources {
         inputs.property("id", modId)
@@ -114,90 +92,29 @@ tasks {
 
     withType<JavaCompile> {
         options.encoding = "UTF-8"
-        sourceCompatibility = javaVersion.toString()
-        targetCompatibility = javaVersion.toString()
-        options.release.set(javaVersion.toString().toInt())
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
+        options.release.set(17)
     }
 
-    compileKotlin {
-        kotlinOptions {
-            jvmTarget = javaVersion.toString()
-        }
-    }
-
-    jar {
-        from("LICENSE")
+    kotlin {
+        jvmToolchain(17)
     }
 
     java {
-        toolchain { languageVersion.set(JavaLanguageVersion.of(javaVersion.toString())) }
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
+        toolchain { languageVersion.set(JavaLanguageVersion.of(17)) }
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
         withSourcesJar()
     }
-
-    remapJar {
-        dependsOn(shadowJar)
-        input.set(shadowJar.get().archiveFile)
-    }
-
-    shadowJar {
-        from("LICENSE")
-
-        configurations = listOf(
-            project.configurations.shadow.get()
-        )
-        archiveClassifier.set("dev-all")
-
-        exclude("kotlin/**", "kotlinx/**", "javax/**", "META-INF")
-        exclude("org/checkerframework/**", "org/intellij/**", "org/jetbrains/annotations/**")
-        exclude("com/google/gson/**")
-        exclude("net/kyori/**")
-        exclude("org/slf4j/**")
-
-        val relocPath = "com.github.quiltservertools.libs."
-        relocate("com.fasterxml", relocPath + "com.fasterxml")
-        relocate("com.moandjiezana.toml", relocPath + "com.moandjiezana.toml")
-        relocate("com.uchuhimo.konf", relocPath + "com.uchuhimo.konf")
-        relocate("javassist", relocPath + "javassist")
-        // Relocate each apache lib separately as just org.apache.commons will relocate things that aren't shadowed and break stuff
-        relocate("org.apache.commons.lang3", relocPath + "org.apache.commons.lang3")
-        relocate("org.apache.commons.text", relocPath + "org.apache.commons.text")
-        relocate("org.reflections", relocPath + "org.reflections")
-        // it appears you cannot relocate sqlite due to the native libraries
-        // relocate("org.sqlite", relocPath + "org.sqlite")
-    }
-
-    compileKotlin {
-        kotlinOptions {
-            jvmTarget = javaVersion.toString()
-        }
-    }
-    compileTestKotlin {
-        kotlinOptions {
-            jvmTarget = javaVersion.toString()
-        }
-    }
-
+    /* 
     withType<TaskModrinthUpload> {
         onlyIf { System.getenv().contains("MODRINTH_TOKEN") }
     }
+    */
 }
 
-// configure the maven publication
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
-        }
-    }
-
-    // select the repositories you want to publish to
-    repositories {
-        // mavenLocal()
-    }
-}
-
+/*
 detekt {
     buildUponDefaultConfig = true
     autoCorrect = true
@@ -223,3 +140,4 @@ fun getVersionMetadata(): String {
     // No tracking information could be found about the build
     return ""
 }
+*/

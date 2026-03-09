@@ -1,14 +1,14 @@
 [versions]
-minecraft = "1.20-rc1"
-yarn-mappings = "1.20-rc1+build.2"
-fabric-loader = "0.14.21"
+minecraft = "1.20.1"
+yarn-mappings = "1.20.1+build.10"
+fabric-loader = "0.17.3"
 
-fabric-api = "0.83.0+1.20"
+fabric-api = "0.92.6+1.20.1"
 
 # Kotlin
-kotlin = "1.9.4"
+kotlin = "2.3.0"
 # Also modrinth version in gradle.properties
-fabric-kotlin = "1.9.4+kotlin.1.8.21"
+fabric-kotlin = "1.13.8+kotlin.2.3.0"
 
 fabric-permissions = "0.2-SNAPSHOT"
 translations = "2.0.0-beta.2+1.19.4-pre2"
@@ -40,5 +40,5 @@ sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
 konf-core = { module = "com.uchuhimo:konf-core", version.ref = "konf"}
 konf-toml = { module = "com.uchuhimo:konf-toml", version.ref = "konf"}
 
-wdmcf = { module = "me.bymartrixx:wdmcf", version.ref = "wdmcf" }
+#wdmcf = { module = "me.bymartrixx:wdmcf", version.ref = "wdmcf" }
 
