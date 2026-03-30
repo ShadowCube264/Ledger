@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.3.0"
+    kotlin("jvm") version "2.2.21"
     id("net.fabricmc.fabric-loom-remap") version "1.15-SNAPSHOT"
 }
 
